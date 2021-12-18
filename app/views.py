@@ -1,8 +1,13 @@
+from os import altsep
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, json, request, jsonify, make_response
+from datetime import datetime, timedelta
 from app.models import User, Todo
+from app.config import Config
 from uuid import uuid4 as uv4
+from functools import wraps
 from app import db
+import jwt
 
 views = Blueprint('views', __name__)
 
@@ -15,12 +20,37 @@ def get_objs(item):
 
 	return data
 
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+
+        if 'x-access-token' in request.headers:
+            token = request.headers['x-access-token']
+
+        if not token:
+            return jsonify({'message' : 'Token is missing!'}), 401
+
+        try: 
+            data = jwt.decode(token, Config.SECRET_KEY, algorithms=['SH256'])
+            current_user = User.query.filter_by(public_id=data['public_id']).first()
+        except:
+            return jsonify({'message' : 'Token is invalid!'}), 401
+
+        return f(current_user, *args, **kwargs)
+
+    return decorated
+
 @views.route('/')
 def index():
 	return {'data': 'Welcome to the flask api'}
 
 @views.route('/user')
-def get_users():
+@token_required
+def get_users(current_user):
+	if not current_user.admin:
+		return jsonify({'message': 'Cannot perform that function...'})
+
 	users = User.query.all()
 
 	output = []
@@ -80,3 +110,22 @@ def delete_user(public_id):
 	
 	return jsonify(resp)
 
+@views.route('/login')
+def login():
+	auth = request.authorization
+
+	if not auth or not auth.username or not auth.password:
+		return make_response('Could not verify', 401, {'WWW-Authenticate': 'Basic realm="Login required!"'})
+
+	user = User.query.filter_by(name=auth.username).first()
+
+	if not user:
+		#return jsonify({'message': 'No user found...'})
+		return make_response('Could not verify', 401, {'WWW-Authenticate': 'Basic realm="Login required!"'})
+
+	if check_password_hash(user.password, auth.password):
+		token = jwt.encode({'public_id': user.public_id, 'exp': datetime.utcnow() + timedelta(minutes=30)}, Config.SECRET_KEY, algorithm='HS256')
+		#return jsonify({'token': jwt.decode(token, Config.SECRET_KEY, algorithms=['HS256']) })
+		return jsonify({'token': token})
+	
+	return make_response('Could not verify', 401, {'WWW-Authenticate': 'Basic realm="Login required!"'})
