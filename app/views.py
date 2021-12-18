@@ -6,6 +6,15 @@ from app import db
 
 views = Blueprint('views', __name__)
 
+def get_objs(item):
+	data = {}
+	data['public_id'] = item.public_id
+	data['name'] = item.name
+	data['password'] = item.password
+	data['admin'] = item.admin
+
+	return data
+
 @views.route('/')
 def index():
 	return {'data': 'Welcome to the flask api'}
@@ -17,11 +26,7 @@ def get_users():
 	output = []
 
 	for usr in users:
-		data = {}
-		data['public_id'] = usr.public_id
-		data['name'] = usr.name
-		data['password'] = usr.password
-		data['admin'] = usr.admin
+		data = get_objs(usr)
 		output.append(data)
 
 	return jsonify({'users': output})
@@ -37,9 +42,16 @@ def create_user():
 
 	return jsonify({'message': 'New user created'})
 
-@views.route('/user/<user_id>')
-def get_user(user_id):
-	return ''
+@views.route('/user/<public_id>')
+def get_user(public_id):
+	user = User.query.filter(User.public_id == public_id).first()
+
+	if not user:
+		return jsonify({'message': 'No user found...'})
+	
+	data = get_objs(user)
+	
+	return jsonify({'user': data})
 
 @views.route('/user/<user_id>', methods=['PUT'])
 def updae_user(user_id):
