@@ -47,17 +47,36 @@ def get_user(public_id):
 	user = User.query.filter(User.public_id == public_id).first()
 
 	if not user:
-		return jsonify({'message': 'No user found...'})
+		resp = {'message': 'No user found...'}
+	else:
+		data = get_objs(user)
+		resp = {'user': data}
 	
-	data = get_objs(user)
+	return jsonify(resp)
+
+@views.route('/user/<public_id>', methods=['PUT'])
+def promote_user(public_id):
+	user = User.query.filter(User.public_id == public_id).first()
+
+	if not user:
+		resp = {'message': 'No user found...'}
+	else:
+		user.admin = True
+		db.session.commit()
+		resp = {'message': 'User promoted to admin...'}
+
+	return jsonify(resp)
+
+@views.route('/user/<public_id>', methods=['DELETE'])
+def delete_user(public_id):
+	user = User.query.filter_by(public_id=public_id).first()
+
+	if not user:
+		resp = {'message': 'Not user found...'}
+	else:
+		db.session.delete(user)
+		db.session.commit()
+		resp = {'message': 'Selected user deleted'}
 	
-	return jsonify({'user': data})
-
-@views.route('/user/<user_id>', methods=['PUT'])
-def updae_user(user_id):
-	return ''
-
-@views.route('/user/<user_id>', methods=['DELETE'])
-def delete_user(user_id):
-	return ''
+	return jsonify(resp)
 
