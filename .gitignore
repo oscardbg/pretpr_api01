@@ -1,2 +1,4 @@
 env01/
 __pycache__/
+*.db
+*.sqlite
