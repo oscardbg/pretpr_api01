@@ -1,8 +1,8 @@
 from app import db
 
 class User(db.Model):
-	id = db.Columnd(db.Integer, primary_key=True)
-	public_id = db.Columnd(db.String(100), unique=True)
+	id = db.Column(db.Integer, primary_key=True)
+	public_id = db.Column(db.String(100), unique=True)
 	name = db.Column(db.String(100))
 	password = db.Column(db.String(100))
 	admin = db.Column(db.Boolean)

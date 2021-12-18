@@ -20,6 +20,6 @@ def create_app():
 	return app
 
 def create_db(app):
-	if not exists('/app' + DB_NAME):
+	if not exists('app/' + DB_NAME):
 		db.create_all(app=app)
-		print('DB created...!')
+		print(' • DB created...!')
